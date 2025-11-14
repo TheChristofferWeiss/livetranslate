@@ -149,6 +149,8 @@ This starter uses a **"local frontend, live backend"** approach:
 
 - `SUPABASE_SERVICE_ROLE_KEY` - Service role key (server-side only!)
 - `NEXT_PUBLIC_SITE_URL` - Your production URL (for email links)
+- `ELEVENLABS_API_KEY` - ElevenLabs API key for generating realtime Scribe tokens (required for live transcription)
+- `DEEPL_API_KEY` - DeepL API key (prefix with `free:` if you are on the free tier)
 
 ## 🤝 Contributing
 

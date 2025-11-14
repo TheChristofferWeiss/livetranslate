@@ -1,5 +1,11 @@
-import Link from 'next/link'
+import {
+  LiveTranscriber,
+  TranscriberControls,
+  TranscriberProvider,
+  TranslationLanguageSelect,
+} from '@/components/transcription/live-transcriber'
 import { createClient } from '@/lib/supabase/server'
+import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,68 +15,49 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-4">
-          Next.js + Supabase + Vercel Starter
-        </h1>
-        
-        <p className="text-lg text-gray-600 mb-8">
-          A production-ready starter template with authentication, database, and deployment configured.
-        </p>
-
-        {user ? (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-2">Welcome back!</h2>
-            <p className="text-gray-700 mb-4">You are signed in as: {user.email}</p>
-            <div className="flex gap-4">
-              <Link
-                href="/dashboard"
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              >
-                Go to Dashboard
-              </Link>
-              <form action="/auth/signout" method="post">
-                <button
-                  type="submit"
-                  className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+      <TranscriberProvider>
+        <div className="max-w-3xl mx-auto space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <TranscriberControls />
+            <TranslationLanguageSelect />
+            {user ? (
+              <div className="flex gap-3">
+                <Link
+                  href="/dashboard"
+                  className="rounded border border-gray-600 px-3 py-1.5 text-sm text-gray-200 hover:border-white"
                 >
-                  Sign Out
-                </button>
-              </form>
-            </div>
+                  Dashboard
+                </Link>
+                <form action="/auth/signout" method="post">
+                  <button
+                    type="submit"
+                    className="rounded bg-gray-700 px-3 py-1.5 text-sm text-white hover:bg-gray-600"
+                  >
+                    Sign out
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <Link
+                  href="/auth/login"
+                  className="rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-500"
+                >
+                  Sign in
+                </Link>
+                <Link
+                  href="/auth/signup"
+                  className="rounded border border-blue-400 px-3 py-1.5 text-sm text-blue-100 hover:border-blue-200"
+                >
+                  Create account
+                </Link>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-2">Get Started</h2>
-            <p className="text-gray-700 mb-4">Sign in to access your dashboard.</p>
-            <div className="flex gap-4">
-              <Link
-                href="/auth/login"
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-              >
-                Sign In
-              </Link>
-              <Link
-                href="/auth/signup"
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-              >
-                Sign Up
-              </Link>
-            </div>
-          </div>
-        )}
 
-        <div className="mt-8">
-          <h2 className="text-2xl font-semibold mb-4">Features</h2>
-          <ul className="list-disc list-inside space-y-2 text-gray-700">
-            <li>✅ Email/password authentication with Supabase</li>
-            <li>✅ Role-based access control</li>
-            <li>✅ Type-safe database queries</li>
-            <li>✅ Server-side rendering with Next.js 14</li>
-            <li>✅ Ready for Vercel deployment</li>
-          </ul>
+          <LiveTranscriber />
         </div>
-      </div>
+      </TranscriberProvider>
     </main>
   )
 }
