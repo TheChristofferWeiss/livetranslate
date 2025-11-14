@@ -23,6 +23,12 @@ export default async function Home() {
             {user ? (
               <div className="flex gap-3">
                 <Link
+                  href="/archive"
+                  className="rounded border border-gray-600 px-3 py-1.5 text-sm text-gray-200 hover:border-white"
+                >
+                  Archive
+                </Link>
+                <Link
                   href="/dashboard"
                   className="rounded border border-gray-600 px-3 py-1.5 text-sm text-gray-200 hover:border-white"
                 >

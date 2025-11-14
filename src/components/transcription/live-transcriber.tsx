@@ -6,12 +6,14 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
 import { useScribe } from '@elevenlabs/react'
 
 const MODEL_ID = 'scribe_v2_realtime'
+const ARCHIVE_LENGTH_TRIGGER = 140
 
 const TRANSLATION_LANGUAGES = [
   { code: 'BG', label: 'Bulgarian' },
@@ -64,6 +66,7 @@ type TranscriberContextValue = {
   isSpeaking: boolean
   speechUrl: string | null
   speechError: string | null
+  archiveError: string | null
 }
 
 const TranscriberContext = createContext<TranscriberContextValue | undefined>(undefined)
@@ -86,6 +89,9 @@ export function TranscriberProvider({ children }: { children: ReactNode }) {
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [speechUrl, setSpeechUrl] = useState<string | null>(null)
   const [speechError, setSpeechError] = useState<string | null>(null)
+  const [archiveError, setArchiveError] = useState<string | null>(null)
+  const sessionId = useMemo(() => crypto.randomUUID(), [])
+  const isArchivingRef = useRef(false)
 
   const scribe = useScribe({
     modelId: MODEL_ID,
@@ -154,6 +160,7 @@ export function TranscriberProvider({ children }: { children: ReactNode }) {
       setIsTranslating(false)
       setTranslationError(null)
       setSpeechError(null)
+      setArchiveError(null)
       setSpeechUrl((prev) => {
         if (prev) {
           URL.revokeObjectURL(prev)
@@ -216,6 +223,66 @@ export function TranscriberProvider({ children }: { children: ReactNode }) {
     [speechUrl]
   )
 
+  const archiveCurrentSegment = useCallback(async () => {
+    if (isArchivingRef.current) {
+      return
+    }
+    const original = scribe.partialTranscript?.trim()
+    const translated = translatedText.trim()
+
+    if (!original || !translated) {
+      return
+    }
+
+    isArchivingRef.current = true
+    setArchiveError(null)
+
+    try {
+      const response = await fetch('/api/transcripts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          original_text: original,
+          translated_text: translated,
+          session_id: sessionId,
+          target_lang: targetLang,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to archive transcript')
+      }
+
+      setTranslatedText('')
+      setSpeechUrl((prev) => {
+        if (prev) {
+          URL.revokeObjectURL(prev)
+        }
+        return null
+      })
+
+      await scribe.commit?.()
+    } catch (err) {
+      setArchiveError((err as Error).message)
+    } finally {
+      isArchivingRef.current = false
+    }
+  }, [scribe, translatedText, sessionId, targetLang])
+
+  useEffect(() => {
+    if (
+      !translatedText.trim() ||
+      !scribe.partialTranscript?.trim() ||
+      scribe.partialTranscript.length < ARCHIVE_LENGTH_TRIGGER
+    ) {
+      return
+    }
+
+    archiveCurrentSegment()
+  }, [archiveCurrentSegment, scribe.partialTranscript, translatedText])
+
   const speakTranslation = useCallback(async () => {
     if (!translatedText) {
       return
@@ -270,6 +337,7 @@ export function TranscriberProvider({ children }: { children: ReactNode }) {
       isSpeaking,
       speechUrl,
       speechError,
+      archiveError,
     }),
     [
       start,
@@ -286,6 +354,7 @@ export function TranscriberProvider({ children }: { children: ReactNode }) {
       isSpeaking,
       speechUrl,
       speechError,
+      archiveError,
     ]
   )
 
@@ -349,6 +418,7 @@ export function LiveTranscriber() {
     isSpeaking,
     speechUrl,
     speechError,
+    archiveError,
   } = useTranscriberContext()
 
   return (
@@ -382,6 +452,12 @@ export function LiveTranscriber() {
         {speechError && (
           <p className="text-sm text-red-300">
             {speechError}
+          </p>
+        )}
+
+        {archiveError && (
+          <p className="text-sm text-red-300">
+            {archiveError}
           </p>
         )}
 

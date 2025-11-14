@@ -153,6 +153,11 @@ This starter uses a **"local frontend, live backend"** approach:
 - `DEEPL_API_KEY` - DeepL API key (prefix with `free:` if you are on the free tier)
 - `ELEVENLABS_VOICE_ID` - Optional ElevenLabs voice for text-to-speech playback
 
+### Archive & Transcripts
+
+- Every live transcript chunk that exceeds two lines is automatically committed to `/archive` along with its translation and timestamp (per signed-in user).
+- Ensure Supabase migrations are applied (`supabase db push`) so the `archived_transcripts` table exists before deploying.
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
