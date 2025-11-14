@@ -84,7 +84,13 @@ export function TranscriberProvider({ children }: { children: ReactNode }) {
     modelId: MODEL_ID,
     onPartialTranscript: () => setError(null),
     onCommittedTranscript: () => setError(null),
-    onError: (err) => setError(err?.message ?? 'Unexpected transcription error'),
+    onError: (err) => {
+      if (err instanceof Error) {
+        setError(err.message)
+        return
+      }
+      setError('Unexpected transcription error')
+    },
   })
 
   const fetchToken = useCallback(async () => {
