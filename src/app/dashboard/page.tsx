@@ -1,6 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
+import type { Tables } from '@/lib/database.types'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+
+export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
   const supabase = createClient()
@@ -16,6 +19,7 @@ export default async function DashboardPage() {
     .select('*')
     .eq('id', user.id)
     .single()
+  const typedProfile = profile as Tables<'profiles'> | null
 
   return (
     <main className="min-h-screen p-8">
@@ -33,7 +37,7 @@ export default async function DashboardPage() {
         </div>
 
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-2xl font-semibold mb-4">Welcome, {profile?.full_name || user.email}!</h2>
+          <h2 className="text-2xl font-semibold mb-4">Welcome, {typedProfile?.full_name || user.email}!</h2>
           
           <div className="space-y-4">
             <div>
@@ -41,10 +45,10 @@ export default async function DashboardPage() {
               <p className="text-lg">{user.email}</p>
             </div>
 
-            {profile && (
+            {typedProfile && (
               <div>
                 <p className="text-sm text-gray-600">Role</p>
-                <p className="text-lg capitalize">{profile.role}</p>
+                <p className="text-lg capitalize">{typedProfile.role}</p>
               </div>
             )}
 
