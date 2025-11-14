@@ -151,6 +151,7 @@ This starter uses a **"local frontend, live backend"** approach:
 - `NEXT_PUBLIC_SITE_URL` - Your production URL (for email links)
 - `ELEVENLABS_API_KEY` - ElevenLabs API key for generating realtime Scribe tokens (required for live transcription)
 - `DEEPL_API_KEY` - DeepL API key (prefix with `free:` if you are on the free tier)
+- `ELEVENLABS_VOICE_ID` - Optional ElevenLabs voice for text-to-speech playback
 
 ## 🤝 Contributing
 

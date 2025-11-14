@@ -60,6 +60,10 @@ type TranscriberContextValue = {
   translatedText: string
   isTranslating: boolean
   translationError: string | null
+  speakTranslation: () => Promise<void>
+  isSpeaking: boolean
+  speechUrl: string | null
+  speechError: string | null
 }
 
 const TranscriberContext = createContext<TranscriberContextValue | undefined>(undefined)
@@ -79,6 +83,9 @@ export function TranscriberProvider({ children }: { children: ReactNode }) {
   const [translatedText, setTranslatedText] = useState('')
   const [isTranslating, setIsTranslating] = useState(false)
   const [translationError, setTranslationError] = useState<string | null>(null)
+  const [isSpeaking, setIsSpeaking] = useState(false)
+  const [speechUrl, setSpeechUrl] = useState<string | null>(null)
+  const [speechError, setSpeechError] = useState<string | null>(null)
 
   const scribe = useScribe({
     modelId: MODEL_ID,
@@ -146,6 +153,13 @@ export function TranscriberProvider({ children }: { children: ReactNode }) {
       setTranslatedText('')
       setIsTranslating(false)
       setTranslationError(null)
+      setSpeechError(null)
+      setSpeechUrl((prev) => {
+        if (prev) {
+          URL.revokeObjectURL(prev)
+        }
+        return null
+      })
       return
     }
 
@@ -193,6 +207,52 @@ export function TranscriberProvider({ children }: { children: ReactNode }) {
     }
   }, [scribe.partialTranscript, targetLang])
 
+  useEffect(
+    () => () => {
+      if (speechUrl) {
+        URL.revokeObjectURL(speechUrl)
+      }
+    },
+    [speechUrl]
+  )
+
+  const speakTranslation = useCallback(async () => {
+    if (!translatedText) {
+      return
+    }
+
+    try {
+      setSpeechError(null)
+      setIsSpeaking(true)
+
+      const response = await fetch('/api/text-to-speech', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: translatedText }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Text-to-speech request failed')
+      }
+
+      const arrayBuffer = await response.arrayBuffer()
+      const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' })
+
+      setSpeechUrl((prev) => {
+        if (prev) {
+          URL.revokeObjectURL(prev)
+        }
+        return URL.createObjectURL(blob)
+      })
+    } catch (err) {
+      setSpeechError((err as Error).message)
+    } finally {
+      setIsSpeaking(false)
+    }
+  }, [translatedText])
+
   const value = useMemo(
     () => ({
       start,
@@ -206,6 +266,10 @@ export function TranscriberProvider({ children }: { children: ReactNode }) {
       translatedText,
       isTranslating,
       translationError,
+      speakTranslation,
+      isSpeaking,
+      speechUrl,
+      speechError,
     }),
     [
       start,
@@ -218,6 +282,10 @@ export function TranscriberProvider({ children }: { children: ReactNode }) {
       translatedText,
       isTranslating,
       translationError,
+      speakTranslation,
+      isSpeaking,
+      speechUrl,
+      speechError,
     ]
   )
 
@@ -271,8 +339,17 @@ export function TranslationLanguageSelect() {
 }
 
 export function LiveTranscriber() {
-  const { partialTranscript, translatedText, error, isTranslating, translationError } =
-    useTranscriberContext()
+  const {
+    partialTranscript,
+    translatedText,
+    error,
+    isTranslating,
+    translationError,
+    speakTranslation,
+    isSpeaking,
+    speechUrl,
+    speechError,
+  } = useTranscriberContext()
 
   return (
     <section className="rounded-2xl border border-gray-800 bg-black p-6 text-white space-y-4">
@@ -290,6 +367,31 @@ export function LiveTranscriber() {
         {translationError
           ? `Translation error: ${translationError}`
           : translatedText || (isTranslating ? 'Translating…' : 'Translation will appear here.')}
+      </div>
+
+      <div className="rounded-xl border border-gray-800/60 bg-black/40 p-4 space-y-3">
+        <button
+          type="button"
+          onClick={speakTranslation}
+          disabled={!translatedText || isSpeaking}
+          className="rounded-full border border-white/60 px-5 py-2 text-sm font-semibold text-white hover:border-white disabled:border-gray-700 disabled:text-gray-500"
+        >
+          {isSpeaking ? 'Generating audio…' : 'Speak translation'}
+        </button>
+
+        {speechError && (
+          <p className="text-sm text-red-300">
+            {speechError}
+          </p>
+        )}
+
+        {speechUrl && (
+          <audio
+            controls
+            src={speechUrl}
+            className="w-full max-w-md"
+          />
+        )}
       </div>
     </section>
   )
